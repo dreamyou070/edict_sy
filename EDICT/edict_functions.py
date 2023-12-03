@@ -682,7 +682,7 @@ def prep_image_for_return(image):
 
 @torch.no_grad()
 def coupled_stablediffusion(prompt="",
-                           prompt_edit=None,
+                            prompt_edit=None,
                             null_prompt='',
                             prompt_edit_token_weights=[],
                             prompt_edit_tokens_start=0.0,
@@ -692,15 +692,14 @@ def coupled_stablediffusion(prompt="",
                             guidance_scale=7.0, steps=50,
                             seed=1, width=512, height=512,
                             init_image=None, init_image_strength=1.0,
-                           run_baseline=False,
-                           use_lms=False,
-                           leapfrog_steps=True,
-                          reverse=False,
-                          return_latents=False,
-                          fixed_starting_latent=None,
-                           beta_schedule='scaled_linear',
+                            run_baseline=False,
+                            use_lms=False,
+                            leapfrog_steps=True,
+                            reverse=False,
+                            return_latents=False,
+                            fixed_starting_latent=None,
+                            beta_schedule='scaled_linear',
                             mix_weight=0.93):
-    #If seed is None, randomly select seed from 0 to 2^32-1
     if seed is None: seed = random.randrange(2**32 - 1)
     generator = torch.cuda.manual_seed(seed)
 
