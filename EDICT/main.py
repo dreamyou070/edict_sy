@@ -68,8 +68,7 @@ def main(args) :
 
     print(f' (1) set seed')
     generator = torch.cuda.manual_seed(args.seed)
-    width = 512
-    height = 512
+    width,height = 256, 256
     steps = 50,
     init_image_strength = 1.0,
     reverse = True
@@ -106,6 +105,26 @@ def main(args) :
         # make coupled latent list
         print(f'make coupled latent list')
         latent_pair = [latent.clone(), latent.clone()]
+
+    if steps == 0:
+        if init_image is not None:
+            return image_to_latent(init_image,vae, generator, device, width = 256, height = 256)
+        else:
+            image = vae.decode(latent.to(vae.dtype) / 0.18215).sample
+            return prep_image_for_return(image)
+
+    # Set inference timesteps to scheduler
+    schedulers = []
+    beta_schedule = 'scaled_linear'
+    for i in range(2):
+        # num_raw_timesteps = max(1000, steps)
+        scheduler = DDIMScheduler(beta_start=0.00085, beta_end=0.012,
+                                  beta_schedule=beta_schedule,
+                                  num_train_timesteps=1000,
+                                  clip_sample=False,
+                                  set_alpha_to_one=False)
+        scheduler.set_timesteps(steps)
+        schedulers.append(scheduler)
 
 
 if __name__ == '__main__' :
