@@ -308,4 +308,5 @@ if __name__ == '__main__' :
     parser = argparse.ArgumentParser(description='EDICT')
     parser.add_argument('--device', type=str, default='cuda:3')
     parser.add_argument('--seed', type=int, default=64)
-    main()
+    args=parser.parse_args()
+    main(args)
