@@ -128,12 +128,13 @@ def main(args) :
 
     print(f' (3) text condition')
     null_prompt = ''
-    tokens_unconditional = clip_tokenizer(null_prompt, padding="max_length",max_length=clip_tokenizer.model_max_length,
-                                          truncation=True, return_tensors="pt",return_overflowing_tokens=True)
+    tokens_unconditional = clip_tokenizer(null_prompt, padding="max_length", max_length=clip_tokenizer.model_max_length,
+                                          truncation=True, return_tensors="pt", return_overflowing_tokens=True)
     embedding_unconditional = clip(tokens_unconditional.input_ids.to(device)).last_hidden_state
-    tokens_conditional = clip_tokenizer(prompt, padding="max_length",max_length=clip_tokenizer.model_max_length,
-                                        truncation=True, return_tensors="pt",return_overflowing_tokens=True)
+    tokens_conditional = clip_tokenizer(prompt, padding="max_length", max_length=clip_tokenizer.model_max_length,
+                                        truncation=True, return_tensors="pt", return_overflowing_tokens=True)
     embedding_conditional = clip(tokens_conditional.input_ids.to(device)).last_hidden_state
+
 
     print(f' (4) timesteps')
     init_attention_func()
@@ -143,6 +144,11 @@ def main(args) :
     print(f' timesteps : {timesteps}')
     if reverse:
         timesteps = timesteps.flip(0)
+
+    print(f' (5) image reconstruction')
+    for i, t in tqdm(enumerate(timesteps), total=len(timesteps)):
+        t_scale = t / schedulers[0].num_train_timesteps
+
 
 
 
