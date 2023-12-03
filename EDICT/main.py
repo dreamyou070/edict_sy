@@ -81,7 +81,7 @@ def main(args) :
             else:
                 init_latent = [image_to_latent(im) for im in init_image]
         else:
-            init_latent = image_to_latent(init_image)
+            init_latent = image_to_latent(init_image,vae, generator, device, width = 256, height = 256)
         t_limit = steps - int(steps * init_image_strength)
     else:
         init_latent = torch.zeros((1, unet.in_channels, height // 8, width // 8), device=device)
