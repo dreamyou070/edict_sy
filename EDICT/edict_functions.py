@@ -1,11 +1,9 @@
 from transformers import CLIPModel, CLIPTokenizer
 import numpy as np
 from PIL import Image
-import torch
+import torch, sys, os
 
-# StableDiffusion P2P implementation originally from https://github.com/bloc97/CrossAttentionControl
-
-# Have diffusers with hardcoded double-casting instead of float
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from EDICT.my_diffusers import AutoencoderKL, UNet2DConditionModel
 from EDICT.my_diffusers import LMSDiscreteScheduler, PNDMScheduler, DDPMScheduler, DDIMScheduler
 
