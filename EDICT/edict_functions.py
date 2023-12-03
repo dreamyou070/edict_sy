@@ -230,16 +230,12 @@ def init_attention_edit(tokens, tokens_edit):
 def init_attention_func():
     def new_attention(self, query, key, value, sequence_length, dim):
         batch_size_attention = query.shape[0]
-        hidden_states = torch.zeros(
-            (batch_size_attention, sequence_length, dim // self.heads), device=query.device, dtype=query.dtype
-        )
+        hidden_states = torch.zeros((batch_size_attention, sequence_length, dim // self.heads), device=query.device, dtype=query.dtype)
         slice_size = self._slice_size if self._slice_size is not None else hidden_states.shape[0]
         for i in range(hidden_states.shape[0] // slice_size):
             start_idx = i * slice_size
             end_idx = (i + 1) * slice_size
-            attn_slice = (
-                torch.einsum("b i d, b j d -> b i j", query[start_idx:end_idx], key[start_idx:end_idx]) * self.scale
-            )
+            attn_slice = (torch.einsum("b i d, b j d -> b i j", query[start_idx:end_idx], key[start_idx:end_idx]) * self.scale)
             attn_slice = attn_slice.softmax(dim=-1)
             
             if self.use_last_attn_slice:

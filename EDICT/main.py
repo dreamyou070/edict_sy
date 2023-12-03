@@ -1,12 +1,44 @@
-from edict_functions import coupled_stablediffusion, load_im_into_format_from_path
+from edict_functions import (coupled_stablediffusion, load_im_into_format_from_path,
+                             prep_image_for_return, init_attention_func,init_attention_weights)
 import matplotlib.pyplot as plt
 import torch, random
+import argparse
+from transformers import CLIPModel, CLIPTokenizer
+from EDICT.my_diffusers import AutoencoderKL, UNet2DConditionModel
+from EDICT.my_diffusers import LMSDiscreteScheduler, PNDMScheduler, DDPMScheduler, DDIMScheduler
+import numpy as np
+from PIL import Image
 
 def plot_EDICT_outputs(im_tuple):
     fig, (ax0, ax1) = plt.subplots(1, 2)
     ax0.imshow(im_tuple[0])
     ax1.imshow(im_tuple[1])
     plt.show()
+
+def image_to_latent(im, device, vae, generator, width=512, height=512):
+    if isinstance(im, torch.Tensor):
+        # assume it's the latent
+        # used to avoid clipping new generation before inversion
+        init_latent = im.to(device)
+    else:
+        # Resize and transpose for numpy b h w c -> torch b c h w
+        im = im.resize((width, height), resample=Image.Resampling.LANCZOS)
+        im = np.array(im).astype(np.float64) / 255.0 * 2.0 - 1.0
+        # check if black and white
+        if len(im.shape) < 3:
+            im = np.stack([im for _ in range(3)], axis=2)  # putting at end b/c channels
+
+        im = torch.from_numpy(im[np.newaxis, ...].transpose(0, 3, 1, 2))
+
+        # If there is alpha channel, composite alpha for white, as the diffusion model does not support alpha channel
+        if im.shape[1] > 3:
+            im = im[:, :3] * im[:, 3:] + (1 - im[:, 3:])
+
+        # Move image to GPU
+        im = im.to(device)
+        # Encode image
+        init_latent = vae.encode(im).latent_dist.sample(generator=generator) * 0.18215
+        return init_latent
 
 """
 @torch.no_grad()
@@ -260,10 +292,6 @@ def coupled_stablediffusion(prompt="",
 diffusion_result = coupled_stablediffusion('A black bear')
 #plot_EDICT_outputs()
 """
-import argparse
-from transformers import CLIPModel, CLIPTokenizer
-from EDICT.my_diffusers import AutoencoderKL, UNet2DConditionModel
-from EDICT.my_diffusers import LMSDiscreteScheduler, PNDMScheduler, DDPMScheduler, DDIMScheduler
 
 def main(args) :
 
@@ -291,17 +319,79 @@ def main(args) :
                                         revision="fp16", torch_dtype=torch.float16)
     vae.double().to(device)
 
-    print(f'step 2. set seed')
-    if args.seed is None: seed = random.randrange(2 ** 32 - 1)
+    prompt = "",
+    prompt_edit = None,
+    null_prompt = '',
+    prompt_edit_token_weights = [],
+    prompt_edit_tokens_start = 0.0,
+    prompt_edit_tokens_end = 1.0,
+    prompt_edit_spatial_start = 0.0,
+    prompt_edit_spatial_end = 1.0,
+    guidance_scale = 7.0,
+    steps = 50, # inference steps
+    seed = 1,
+    width = 512,
+    height = 512,
+    init_image = None,
+    init_image_strength = 1.0,
+    run_baseline = False,
+    leapfrog_steps = True,
+    reverse = False,
+    return_latents = False,
+    fixed_starting_latent = None,
+    beta_schedule = 'scaled_linear',
+    mix_weight = 0.93
+
+    print(f'step 2. set seed and generator')
+    if args.seed is None :
+        seed = random.randrange(2 ** 32 - 1)
     generator = torch.cuda.manual_seed(seed)
 
-    print(f'step 3. set start latent')
-    width, height = 512, 512
+    print(f'step 3. infernce')
+    width = width - width % 64
+    height = height - height % 64
     init_latent = torch.zeros((1, unet.in_channels, height // 8, width // 8), device=device)
-    t_limit = 0
+
+    print(f' (1) generate random normal noise')
     noise = torch.randn(init_latent.shape,generator=generator,device=device,dtype=torch.float64)
     latent = noise
     latent_pair = [latent.clone(), latent.clone()]
+
+    if steps == 0:
+        if init_image is not None:
+            return image_to_latent(init_image)
+        else:
+            image = vae.decode(latent.to(vae.dtype) / 0.18215).sample
+            return prep_image_for_return(image)
+
+    print(f' (2) set two schedulers')
+    schedulers = []
+    for i in range(2):
+        # num_raw_timesteps = max(1000, steps)
+        scheduler = DDIMScheduler(beta_start=0.00085, beta_end=0.012,beta_schedule=beta_schedule,
+                                  num_train_timesteps=1000,clip_sample=False,set_alpha_to_one=False)
+        scheduler.set_timesteps(steps)
+        schedulers.append(scheduler)
+
+    print(f' (3) set text condition')
+    tokens_unconditional = clip_tokenizer(null_prompt, padding="max_length",max_length=clip_tokenizer.model_max_length,
+                                          truncation=True, return_tensors="pt",return_overflowing_tokens=True)
+    embedding_unconditional = clip(tokens_unconditional.input_ids.to(device)).last_hidden_state
+    tokens_conditional = clip_tokenizer(prompt, padding="max_length",max_length=clip_tokenizer.model_max_length,
+                                        truncation=True, return_tensors="pt",return_overflowing_tokens=True)
+    embedding_conditional = clip(tokens_conditional.input_ids.to(device)).last_hidden_state
+
+    print(f' (4) change attention function')
+    init_attention_func()
+    prompt_edit_token_weights = []
+    init_attention_weights(prompt_edit_token_weights)
+
+    print(f' (5) set time-step')
+    t_limit = 0
+    timesteps = schedulers[0].timesteps[t_limit:]
+    print(f'timesteps (from 1000 to 0) : {timesteps}')
+
+
 
 
 if __name__ == '__main__' :
