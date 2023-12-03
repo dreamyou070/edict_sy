@@ -69,8 +69,8 @@ def main(args) :
     print(f' (1) set seed')
     generator = torch.cuda.manual_seed(args.seed)
     width,height = 256, 256
-    steps = 50,
-    init_image_strength = 1.0,
+    steps = 50
+    init_image_strength = 1.0
     reverse = True
     fixed_starting_latent = None
     # Preprocess image if it exists (img2img)
