@@ -65,7 +65,6 @@ def main(args) :
     init_image = load_im_into_format_from_path(args.img_dir)
     prompt = 'A church'
     run_baseline = False
-    latents = coupled_stablediffusion(prompt,reverse=True,init_image=init_image,run_baseline=run_baseline,)
 
     print(f' (1) set seed')
     generator = torch.cuda.manual_seed(args.seed)
