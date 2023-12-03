@@ -102,8 +102,6 @@ def main(args) :
     if isinstance(latent, list):  # initializing from pair of images
         latent_pair = latent
     else:  # initializing from noise
-        # make coupled latent list
-        print(f'make coupled latent list')
         latent_pair = [latent.clone(), latent.clone()]
 
     if steps == 0:
@@ -118,22 +116,20 @@ def main(args) :
     beta_schedule = 'scaled_linear'
     for i in range(2):
         # num_raw_timesteps = max(1000, steps)
-        scheduler = DDIMScheduler(beta_start=0.00085, beta_end=0.012,
-                                  beta_schedule=beta_schedule,
-                                  num_train_timesteps=1000,
-                                  clip_sample=False,
-                                  set_alpha_to_one=False)
+        scheduler = DDIMScheduler(beta_start=0.00085, beta_end=0.012,beta_schedule=beta_schedule,
+                                  num_train_timesteps=1000,clip_sample=False,set_alpha_to_one=False)
         scheduler.set_timesteps(steps)
         schedulers.append(scheduler)
 
     print(f' (3) text condition')
+    tokens_conditional = clip_tokenizer(prompt, padding="max_length", max_length=clip_tokenizer.model_max_length,
+                                        truncation=True, return_tensors="pt", return_overflowing_tokens=True)
+    embedding_conditional = clip(tokens_conditional.input_ids.to(device)).last_hidden_state
     null_prompt = ''
     tokens_unconditional = clip_tokenizer(null_prompt, padding="max_length", max_length=clip_tokenizer.model_max_length,
                                           truncation=True, return_tensors="pt", return_overflowing_tokens=True)
     embedding_unconditional = clip(tokens_unconditional.input_ids.to(device)).last_hidden_state
-    tokens_conditional = clip_tokenizer(prompt, padding="max_length", max_length=clip_tokenizer.model_max_length,
-                                        truncation=True, return_tensors="pt", return_overflowing_tokens=True)
-    embedding_conditional = clip(tokens_conditional.input_ids.to(device)).last_hidden_state
+
 
 
     print(f' (4) timesteps')
