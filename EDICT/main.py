@@ -1,4 +1,4 @@
-from edict_functions import coupled_stablediffusion
+from edict_functions import coupled_stablediffusion, load_im_into_format_from_path
 import matplotlib.pyplot as plt
 import torch, random
 
@@ -8,16 +8,27 @@ def plot_EDICT_outputs(im_tuple):
     ax1.imshow(im_tuple[1])
     plt.show()
 
-
+"""
 @torch.no_grad()
-def coupled_stablediffusion(prompt="",prompt_edit=None,null_prompt='',
-                            prompt_edit_token_weights=[],prompt_edit_tokens_start=0.0,prompt_edit_tokens_end=1.0,
+def coupled_stablediffusion(prompt="",
+                            prompt_edit=None,
+                            null_prompt='',
+                            prompt_edit_token_weights=[],
+                            prompt_edit_tokens_start=0.0,
+                            prompt_edit_tokens_end=1.0,
                             prompt_edit_spatial_start=0.0,
                             prompt_edit_spatial_end=1.0,
-                            guidance_scale=7.0, steps=50,seed=1, width=512, height=512,
-                            init_image=None, init_image_strength=1.0,run_baseline=False,
-                            use_lms=False,leapfrog_steps=True,reverse=False,return_latents=False,fixed_starting_latent=None,
-                            beta_schedule='scaled_linear',mix_weight=0.93):
+                            guidance_scale=7.0, steps=50,
+                            seed=1, width=512, height=512,
+                            init_image=None, init_image_strength=1.0,
+                            run_baseline=False,
+                            use_lms=False,
+                            leapfrog_steps=True,
+                            reverse=False,
+                            return_latents=False,
+                            fixed_starting_latent=None,
+                            beta_schedule='scaled_linear',
+                            mix_weight=0.93):
     # If seed is None, randomly select seed from 0 to 2^32-1
     if seed is None: seed = random.randrange(2 ** 32 - 1)
     generator = torch.cuda.manual_seed(seed)
@@ -55,7 +66,7 @@ def coupled_stablediffusion(prompt="",prompt_edit=None,null_prompt='',
 
     # Preprocess image if it exists (img2img)
     if init_image is not None:
-        assert reverse  # want to be performing deterministic noising
+        assert reverse  # want to be performing deterministic noising 
         # can take either pair (output of generative process) or single image
         if isinstance(init_image, list):
             if isinstance(init_image[0], torch.Tensor):
@@ -153,7 +164,7 @@ def coupled_stablediffusion(prompt="",prompt_edit=None,null_prompt='',
         # alternate EDICT steps
         for latent_i in range(2):
             if run_baseline and latent_i == 1: continue  # just have one sequence for baseline
-            # this modifies latent_pair[i] while using
+            # this modifies latent_pair[i] while using 
             # latent_pair[(i+1)%2]
             if reverse and (not run_baseline):
                 if leapfrog_steps:
@@ -248,7 +259,7 @@ def coupled_stablediffusion(prompt="",prompt_edit=None,null_prompt='',
 
 diffusion_result = coupled_stablediffusion('A black bear')
 #plot_EDICT_outputs()
-
+"""
 import argparse
 from transformers import CLIPModel, CLIPTokenizer
 from EDICT.my_diffusers import AutoencoderKL, UNet2DConditionModel
@@ -279,10 +290,22 @@ def main(args) :
                                         use_auth_token=auth_token,
                                         revision="fp16", torch_dtype=torch.float16)
     vae.double().to(device)
-    print("Loaded all models")
+
+    print(f'step 2. set seed')
+    if args.seed is None: seed = random.randrange(2 ** 32 - 1)
+    generator = torch.cuda.manual_seed(seed)
+
+    print(f'step 3. set start latent')
+    width, height = 512, 512
+    init_latent = torch.zeros((1, unet.in_channels, height // 8, width // 8), device=device)
+    t_limit = 0
+    noise = torch.randn(init_latent.shape,generator=generator,device=device,dtype=torch.float64)
+    latent = noise
+    latent_pair = [latent.clone(), latent.clone()]
 
 
 if __name__ == '__main__' :
     parser = argparse.ArgumentParser(description='EDICT')
     parser.add_argument('--device', type=str, default='cuda:3')
+    parser.add_argument('--seed', type=int, default=64)
     main()
