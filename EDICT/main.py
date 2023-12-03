@@ -123,7 +123,7 @@ def main(args) :
 
     print(f' (3) text condition')
     tokens_conditional = clip_tokenizer(prompt, padding="max_length", max_length=clip_tokenizer.model_max_length,
-                                        truncation=True, return_tensors="pt", return_overflowing_tokens=True)
+                                        truncation=True, return_tensors="pt", return_overflowing_tokens=False)
     embedding_conditional = clip(tokens_conditional.input_ids.to(device)).last_hidden_state
     null_prompt = ''
     tokens_unconditional = clip_tokenizer(null_prompt, padding="max_length", max_length=clip_tokenizer.model_max_length,
