@@ -2,12 +2,9 @@ from transformers import CLIPModel, CLIPTokenizer
 import numpy as np
 from PIL import Image
 import torch, sys, os
-
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from EDICT.my_diffusers import AutoencoderKL, UNet2DConditionModel
 from EDICT.my_diffusers import LMSDiscreteScheduler, PNDMScheduler, DDPMScheduler, DDIMScheduler
-
-
 import random
 from tqdm.auto import tqdm
 from torch import autocast
@@ -937,5 +934,3 @@ def coupled_stablediffusion(prompt="",
         return_arr.append(image)
     results = [return_arr]
     return results if len(results)>1 else results[0]
-
-
