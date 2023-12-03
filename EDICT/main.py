@@ -126,6 +126,25 @@ def main(args) :
         scheduler.set_timesteps(steps)
         schedulers.append(scheduler)
 
+    print(f' (3) text condition')
+    null_prompt = ''
+    tokens_unconditional = clip_tokenizer(null_prompt, padding="max_length",max_length=clip_tokenizer.model_max_length,
+                                          truncation=True, return_tensors="pt",return_overflowing_tokens=True)
+    embedding_unconditional = clip(tokens_unconditional.input_ids.to(device)).last_hidden_state
+    tokens_conditional = clip_tokenizer(prompt, padding="max_length",max_length=clip_tokenizer.model_max_length,
+                                        truncation=True, return_tensors="pt",return_overflowing_tokens=True)
+    embedding_conditional = clip(tokens_conditional.input_ids.to(device)).last_hidden_state
+
+    print(f' (4) timesteps')
+    init_attention_func()
+    prompt_edit_token_weights = []
+    init_attention_weights(prompt_edit_token_weights)
+    timesteps = schedulers[0].timesteps[t_limit:]
+    print(f' timesteps : {timesteps}')
+    if reverse:
+        timesteps = timesteps.flip(0)
+
+
 
 if __name__ == '__main__' :
     parser = argparse.ArgumentParser(description='EDICT')

@@ -821,7 +821,8 @@ def coupled_stablediffusion(prompt="",
     init_attention_weights(prompt_edit_token_weights)
 
     timesteps = schedulers[0].timesteps[t_limit:]
-    if reverse: timesteps = timesteps.flip(0)
+    if reverse:
+        timesteps = timesteps.flip(0)
 
     for i, t in tqdm(enumerate(timesteps), total=len(timesteps)):
         t_scale = t / schedulers[0].num_train_timesteps
